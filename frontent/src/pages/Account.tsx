@@ -1,8 +1,8 @@
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useAppData } from "../context/useAppData";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+
 import {
     BiPackage,
     BiMap,
@@ -11,6 +11,13 @@ import {
     BiUser,
     BiCog,
 } from "react-icons/bi";
+
+import {
+    useAppDispatch,
+    useAppSelector
+} from '../redux/hooks';
+
+import { logout } from "../redux/slices/authSlice";
 
 type MenuItemProps = {
     icon: React.ReactNode;
@@ -27,7 +34,9 @@ const MenuItem = ({ icon, title, onClick }: MenuItemProps) => (
     >
         <div className="flex items-center gap-4">
             {icon}
-            <span className="font-medium text-gray-700">{title}</span>
+            <span className="font-medium text-gray-700">
+                {title}
+            </span>
         </div>
 
         <BiChevronRight className="text-xl text-gray-400" />
@@ -36,19 +45,21 @@ const MenuItem = ({ icon, title, onClick }: MenuItemProps) => (
 
 const Account = () => {
     const navigate = useNavigate();
-    const { user, setUser, setIsAuth } = useAppData();
+    const dispatch = useAppDispatch();
+
+    const user = useAppSelector((state) => state.auth.user);
 
     if (!user) {
         return <Navigate to="/login" replace />;
     }
 
     const logoutHandler = () => {
-        localStorage.removeItem("token");
-        setUser(null);
-        setIsAuth(false);
+        dispatch(logout());
 
         toast.success("Logout Successful");
-        navigate("/login", { replace: true });
+        navigate("/login", {
+            replace: true
+        });
     };
 
     const roleColors = {
@@ -64,13 +75,22 @@ const Account = () => {
 
     return (
         <div className="min-h-screen bg-linear-to-b from-gray-50 via-white to-gray-100 px-4 py-8">
+
             <div className="mx-auto max-w-lg">
 
                 <motion.div
-                    initial={{ opacity: 0, y: 25 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{
+                        opacity: 0,
+                        y: 25,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
                     className="overflow-hidden rounded-3xl bg-white shadow-xl border border-gray-100"
                 >
+
+                    {/* Profile Header */}
                     <div className="bg-linear-to-r from-red-500 via-orange-500 to-red-600 p-7 text-white">
                         <div className="flex items-center gap-4">
                             {user.image ? (
@@ -81,7 +101,9 @@ const Account = () => {
                                 />
                             ) : (
                                 <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold border-4 border-white shadow-lg">
-                                    {user.name.charAt(0).toUpperCase()}
+                                    {user.name
+                                        .charAt(0)
+                                        .toUpperCase()}
                                 </div>
                             )}
 
@@ -103,24 +125,40 @@ const Account = () => {
                         </div>
                     </div>
 
+                    {/* Stats */}
                     <div className="grid grid-cols-3 gap-3 p-5 border-b">
+
                         <div className="rounded-2xl bg-gray-50 p-4 text-center">
-                            <h3 className="text-xl font-bold">12</h3>
-                            <p className="text-xs text-gray-500">Orders</p>
+                            <h3 className="text-xl font-bold">
+                                12
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                                Orders
+                            </p>
                         </div>
 
                         <div className="rounded-2xl bg-gray-50 p-4 text-center">
-                            <h3 className="text-xl font-bold">3</h3>
-                            <p className="text-xs text-gray-500">Addresses</p>
+                            <h3 className="text-xl font-bold">
+                                3
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                                Addresses
+                            </p>
                         </div>
 
                         <div className="rounded-2xl bg-gray-50 p-4 text-center">
-                            <h3 className="text-xl font-bold">₹540</h3>
-                            <p className="text-xs text-gray-500">Saved</p>
+                            <h3 className="text-xl font-bold">
+                                ₹540
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                                Saved
+                            </p>
                         </div>
                     </div>
 
+                    {/* Menu */}
                     <div className="p-3">
+
                         <MenuItem
                             icon={
                                 <div className="rounded-xl bg-red-100 p-2">
@@ -128,7 +166,9 @@ const Account = () => {
                                 </div>
                             }
                             title="My Orders"
-                            onClick={() => navigate("/orders")}
+                            onClick={() =>
+                                navigate("/orders")
+                            }
                         />
 
                         <MenuItem
@@ -138,7 +178,9 @@ const Account = () => {
                                 </div>
                             }
                             title="Saved Addresses"
-                            onClick={() => navigate("/address")}
+                            onClick={() =>
+                                navigate("/address")
+                            }
                         />
 
                         <MenuItem
@@ -148,7 +190,9 @@ const Account = () => {
                                 </div>
                             }
                             title="Edit Profile"
-                            onClick={() => navigate("/profile")}
+                            onClick={() =>
+                                navigate("/profile")
+                            }
                         />
 
                         <MenuItem
@@ -158,12 +202,18 @@ const Account = () => {
                                 </div>
                             }
                             title="Settings"
-                            onClick={() => navigate("/settings")}
+                            onClick={() =>
+                                navigate("/settings")
+                            }
                         />
 
                         <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={{
+                                scale: 1.02
+                            }}
+                            whileTap={{
+                                scale: 0.98
+                            }}
                             onClick={logoutHandler}
                             className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 py-3 font-semibold text-white hover:bg-red-600 transition"
                         >

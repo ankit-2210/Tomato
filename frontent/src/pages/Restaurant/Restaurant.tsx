@@ -163,11 +163,11 @@ const Restaurant = () => {
                     )}
 
                     {tab === "menu" && (
-                        <MenuSection />
+                        <MenuSection restaurant={restaurant} />
                     )}
 
                     {tab === "add-items" && (
-                        <AddItemsSection />
+                        <AddItemsSection restaurant={restaurant} />
                     )}
 
                     {tab === "sales" && (

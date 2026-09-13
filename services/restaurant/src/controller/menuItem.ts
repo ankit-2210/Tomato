@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { AuthenticationRequest } from "../middlewares/auth.js";
 import TryCatch from "../middlewares/trycatch.js";
 import MenuItem from "../model/MenuItems.js";
@@ -26,17 +27,19 @@ export const addMenuItem = TryCatch(async (req: AuthenticationRequest, res) => {
     }
 
     const { name, description, price } = req.body;
-    if (!name || !price) {
+    if (!name || price === undefined) {
         return res.status(404).json({
             success: false,
             message: "Name and price are required",
         });
     }
 
-    if (Number(price) < 0) {
+
+    const numericPrice = Number(price);
+    if (isNaN(numericPrice) || numericPrice < 0) {
         return res.status(400).json({
             success: false,
-            message: "Price must be a non-negative number.",
+            message: "Please provide a valid price.",
         });
     }
 
@@ -58,7 +61,7 @@ export const addMenuItem = TryCatch(async (req: AuthenticationRequest, res) => {
         name,
         description,
         image: imageUrl,
-        price: Number(price),
+        price: numericPrice,
         isAvailable: true,
     });
 
@@ -70,9 +73,9 @@ export const addMenuItem = TryCatch(async (req: AuthenticationRequest, res) => {
 
 })
 
-// Get All Menu Items for a Restaurant
+// GET ALL MENU ITEMS
 export const getAllItems = TryCatch(async (req: AuthenticationRequest, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     if (!id) {
         return res.status(400).json({
@@ -81,16 +84,26 @@ export const getAllItems = TryCatch(async (req: AuthenticationRequest, res) => {
         });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid restaurant ID.",
+        });
+    }
+
     const restaurant = await Restaurant.findById(id);
     if (!restaurant) {
         return res.status(404).json({
-            success: false, message: "Restaurant not found.",
+            success: false,
+            message: "Restaurant not found.",
         });
     }
 
     const menuItems = await MenuItem.find({
-        restaurantId: restaurant._id,
-    }).sort({ createdAt: -1 });
+        restaurantId: id,
+    }).sort({
+        createdAt: -1
+    });
 
     return res.status(200).json({
         success: true,
@@ -101,27 +114,58 @@ export const getAllItems = TryCatch(async (req: AuthenticationRequest, res) => {
 });
 
 
-// Delete Menu Item
-export const deleteMenuItem = TryCatch(async (req: AuthenticationRequest, res) => {
-    const { id } = req.params;
+// GET SINGLE MENU ITEM
+export const getSingleItem = TryCatch(async (req: AuthenticationRequest, res) => {
+    const id = req.params.id as string;
 
     if (!id) {
         return res.status(400).json({
             success: false,
-            message: "Restaurant ID is required.",
+            message: "Menu Item ID is required.",
         });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid menu item ID.",
+        });
+    }
+
+    const menuItem = await MenuItem.findById(id);
+    if (!menuItem) {
+        return res.status(404).json({
+            success: false,
+            message: "Menu item not found.",
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        menuItem,
+    });
+});
+
+
+// UPDATE MENU ITEM
+export const updateMenuItem = TryCatch(async (req: AuthenticationRequest, res) => {
     const user = req.user;
 
     if (!user) {
         return res.status(401).json({
             success: false,
-            message: "Unauthorized",
+            message: "Unauthorized.",
         });
     }
 
-    // Find restaurant owned by logged-in user 
+    const id = req.params.id as string;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid menu item ID.",
+        });
+    }
+
     const restaurant = await Restaurant.findOne({
         ownerId: user._id,
     });
@@ -133,7 +177,6 @@ export const deleteMenuItem = TryCatch(async (req: AuthenticationRequest, res) =
         });
     }
 
-    // Find menu item belonging to this restaurant
     const menuItem = await MenuItem.findOne({
         _id: id,
         restaurantId: restaurant._id,
@@ -146,16 +189,191 @@ export const deleteMenuItem = TryCatch(async (req: AuthenticationRequest, res) =
         });
     }
 
-    await MenuItem.findByIdAndDelete(menuItem._id);
+    const { name, description, price } = req.body;
+    if (name !== undefined) {
+        menuItem.name = name;
+    }
+    if (description !== undefined) {
+        menuItem.description = description;
+    }
+    if (price !== undefined) {
+        const numericPrice = Number(price);
+
+        if (isNaN(numericPrice) || numericPrice < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid price.",
+            });
+        }
+        menuItem.price = numericPrice;
+    }
+
+    if (req.file) {
+        const imageUrl = `${req.protocol}://${req.get("host")}/uploads/menuItems/${req.file.filename}`;
+        menuItem.image = imageUrl;
+    }
+
+    await menuItem.save();
+
+    return res.status(200).json({
+        success: true,
+        menuItem,
+    });
+
+});
+
+
+// DELETE MENU ITEM
+export const deleteMenuItem = TryCatch(async (req: AuthenticationRequest, res) => {
+    const user = req.user;
+
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized.",
+        });
+    }
+
+    const id = req.params.id as string;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid menu item ID.",
+        });
+    }
+
+    const restaurant = await Restaurant.findOne({
+        ownerId: user._id,
+    });
+
+    if (!restaurant) {
+        return res.status(404).json({
+            success: false,
+            message: "Restaurant not found.",
+        });
+    }
+
+    const menuItem = await MenuItem.findOne({
+        _id: id,
+        restaurantId: restaurant._id,
+    });
+
+    if (!menuItem) {
+        return res.status(404).json({
+            success: false,
+            message: "Menu item not found.",
+        });
+    }
+
+    await MenuItem.findByIdAndDelete(id);
 
     return res.status(200).json({
         success: true,
         message: "Menu item deleted successfully.",
     });
 
+});
+
+
+// TOGGLE AVAILABILITY
+export const toggleAvailability = TryCatch(async (req: AuthenticationRequest, res) => {
+    const user = req.user;
+
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized.",
+        });
+    }
+
+    const id = req.params.id as string;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid menu item ID.",
+        });
+    }
+
+    const restaurant = await Restaurant.findOne({
+        ownerId: user._id,
+    });
+
+    if (!restaurant) {
+        return res.status(404).json({
+            success: false,
+            message: "Restaurant not found.",
+        });
+    }
+
+    const menuItem = await MenuItem.findOne({
+        _id: id,
+        restaurantId: restaurant._id,
+    });
+
+    if (!menuItem) {
+        return res.status(404).json({
+            success: false,
+            message: "Menu item not found.",
+        });
+    }
+
+    menuItem.isAvailable = !menuItem.isAvailable;
+
+    return res.status(200).json({
+        success: true,
+        message: menuItem.isAvailable
+            ? "Menu item is now available."
+            : "Menu item is now unavailable.",
+        isAvailable: menuItem.isAvailable,
+    });
 
 });
 
 
+// SEARCH MENU ITEMS
+export const searchMenuItems = TryCatch(async (req: AuthenticationRequest, res) => {
+    const restaurantId = req.params.restaurantId as string;
+    const { search } = req.query;
 
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid restaurant ID.",
+        });
+    }
 
+    if (!search || typeof search !== "string") {
+        return res.status(400).json({
+            success: false,
+            message: "Search query is required.",
+        });
+    }
+
+    const menuItems = await MenuItem.find({
+        restaurantId,
+        $or: [
+            {
+                name: {
+                    $regex: search,
+                    $options: "i",
+                }
+            },
+            {
+                description: {
+                    $regex: search,
+                    $options: "i",
+                }
+            },
+        ]
+    }).sort({
+        createdAt: -1
+    });
+
+    return res.status(200).json({
+        success: true,
+        count: menuItems.length,
+        menuItems,
+    });
+
+});

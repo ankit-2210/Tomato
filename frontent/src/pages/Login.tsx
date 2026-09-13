@@ -1,17 +1,23 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { authService } from '../main';
 import toast from 'react-hot-toast';
-import { useGoogleLogin, type CodeResponse } from "@react-oauth/google";
+import {
+    useGoogleLogin,
+    type CodeResponse
+} from "@react-oauth/google";
 import { FcGoogle } from "react-icons/fc";
-import { useAppData } from '../context/useAppData';
+
+import { authService } from '../main';
+import { useAppDispatch } from "../redux/hooks";
+import { setUser } from '../redux/slices/authSlice';
+// import { useAppData } from '../context/useAppData';
 
 const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { setUser, setIsAuth } = useAppData();
+    const dispatch = useAppDispatch();
 
     const handleGoogleSuccess = async (authResult: CodeResponse) => {
         if (!authResult.code) {
@@ -22,6 +28,7 @@ const Login = () => {
         console.log(authResult);
 
         setLoading(true);
+
         try {
             const { data } = await axios.post(`${authService}/api/auth/login`, {
                 code: authResult.code,
@@ -29,10 +36,11 @@ const Login = () => {
 
             localStorage.setItem("token", data.token);
 
-            setUser(data.user);
-            setIsAuth(true);
+            dispatch(setUser(data.user));
 
-            toast.success(data.message || "Login Successful!");
+            toast.success(
+                data.message || "Login Successful!"
+            );
 
             navigate("/");
         }
@@ -40,7 +48,10 @@ const Login = () => {
             if (axios.isAxiosError(error)) {
                 console.error(error.response?.data);
 
-                toast.error(error.response?.data?.message || "Login failed.");
+                toast.error(
+                    error.response?.data?.message ||
+                    "Login failed."
+                );
             }
             else {
                 console.error(error);
@@ -71,8 +82,9 @@ const Login = () => {
                     </h1>
 
                     <p className="text-xl opacity-90 leading-relaxed">
-                        Discover the best food from your favorite restaurants
-                        and get it delivered fast to your doorstep.
+                        Discover the best food from your favorite
+                        restaurants and get it delivered fast to
+                        your doorstep.
                     </p>
 
                     <img
@@ -98,7 +110,8 @@ const Login = () => {
 
                         <button
                             onClick={() => googleLogin()}
-                            className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl py-4 text-gray-700 font-medium shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+                            disabled={loading}
+                            className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl py-4 text-gray-700 font-medium shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <FcGoogle size={24} />
                             {loading
@@ -115,11 +128,14 @@ const Login = () => {
 
                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
                             <p className="text-sm text-gray-600 text-center">
+
                                 By continuing, you agree to our{" "}
                                 <span className="text-orange-500 font-medium cursor-pointer">
                                     Terms of Service
                                 </span>{" "}
+
                                 and{" "}
+
                                 <span className="text-orange-500 font-medium cursor-pointer">
                                     Privacy Policy
                                 </span>

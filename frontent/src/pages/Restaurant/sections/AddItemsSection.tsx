@@ -2,7 +2,7 @@ import { FiPlus } from "react-icons/fi";
 
 import EmptyDashboard from "./EmptyDashboard";
 
-const AddItemsSection = () => {
+const AddItemsSection = ({ restaurant }) => {
     return (
         <EmptyDashboard
             icon={<FiPlus />}
