@@ -57,15 +57,24 @@ const RestaurantProfile = ({ restaurant, isSeller, onUpdate }: RestaurantProfile
                 onUpdate(data.restaurant);
             }
 
-            toast.success(data.message || "Restaurant status updated.");
+            toast.success(
+                data.message ||
+                "Restaurant status updated."
+            );
         }
         catch (error) {
             console.error(error);
+
             if (axios.isAxiosError(error)) {
-                toast.error(error.response?.data?.message || "Failed to update status.");
+                toast.error(
+                    error.response?.data?.message ||
+                    "Failed to update status."
+                );
             }
             else {
-                toast.error("Failed to update status.");
+                toast.error(
+                    "Failed to update status."
+                );
             }
 
         }
@@ -76,12 +85,15 @@ const RestaurantProfile = ({ restaurant, isSeller, onUpdate }: RestaurantProfile
 
     const saveChanges = async () => {
         if (!name.trim()) {
-            toast.error("Restaurant name is required.");
+            toast.error(
+                "Restaurant name is required."
+            );
             return;
         }
 
         try {
             setLoading(true);
+
             const { data } = await axios.patch(`${restaurantService}/api/restaurant/edit`,
                 {
                     name: name.trim(),
@@ -100,17 +112,25 @@ const RestaurantProfile = ({ restaurant, isSeller, onUpdate }: RestaurantProfile
 
             setEditMode(false);
 
-            toast.success(data.message || "Restaurant updated successfully.");
+            toast.success(
+                data.message ||
+                "Restaurant updated successfully."
+            );
 
         }
         catch (error) {
             console.error(error);
 
             if (axios.isAxiosError(error)) {
-                toast.error(error.response?.data?.message || "Failed to update restaurant.");
+                toast.error(
+                    error.response?.data?.message ||
+                    "Failed to update restaurant."
+                );
             }
             else {
-                toast.error("Failed to update restaurant.");
+                toast.error(
+                    "Failed to update restaurant."
+                );
             }
         }
         finally {
@@ -118,9 +138,12 @@ const RestaurantProfile = ({ restaurant, isSeller, onUpdate }: RestaurantProfile
         }
     };
 
+    /* ---------------- Cancel Edit ---------------- */
     const cancelEdit = () => {
         setName(restaurant.name);
-        setDescription(restaurant.description || "");
+        setDescription(
+            restaurant.description || ""
+        );
 
         setEditMode(false);
     };
@@ -167,7 +190,7 @@ const RestaurantProfile = ({ restaurant, isSeller, onUpdate }: RestaurantProfile
                         </div>
                     )}
 
-                    {/* Status */}
+                    {/* Open Status */}
                     <div
                         className={`flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur-xl ${restaurant.isOpen
                             ? "bg-green-500/80"

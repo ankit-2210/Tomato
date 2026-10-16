@@ -17,7 +17,7 @@ const initialState: LocationState = {
 export const fetchLocation = createAsyncThunk("location/fetchLocation", async (_, { rejectWithValue }) => {
     return new Promise<LocationData>((resolve, reject) => {
         if (!navigator.geolocation) {
-            reject("Geolocation is not supported by this browser.");
+            rejectWithValue("Geolocation is not supported by this browser.");
             return;
         }
 

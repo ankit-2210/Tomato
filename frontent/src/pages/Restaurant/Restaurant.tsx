@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { motion } from "framer-motion";
 
-import { restaurantService } from "../../main";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import {
+    fetchRestaurant,
+    setRestaurant,
+} from "../../redux/slices/restaurantSlice";
+
 import AddRestaurant from "./AddRestaurant";
 import RestaurantProfile from "./RestaurantProfile";
 
@@ -11,42 +15,20 @@ import MenuSection from "./sections/MenuSections";
 import SalesSection from "./sections/SalesSection";
 import Overview from "./sections/Overview";
 
-import type { IRestaurant } from "../../types";
-
 type SellerTab = "overview" | "menu" | "add-items" | "sales";
 
 const Restaurant = () => {
-    const [restaurant, setRestaurant] = useState<IRestaurant | null>(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useAppDispatch();
+
+    const { restaurant, loading } = useAppSelector(
+        (state) => state.restaurant
+    );
+
     const [tab, setTab] = useState<SellerTab>("overview");
 
-    const fetchRestaurant = async () => {
-        try {
-            const { data } = await axios.get(`${restaurantService}/api/restaurant/`, {
-                headers: {
-                    Authorization:
-                        `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-
-            setRestaurant(data.restaurant);
-
-            if (data.token) {
-                localStorage.setItem("token", data.token);
-            }
-        }
-        catch (error) {
-            console.error("Failed to fetch restaurant:", error);
-            setRestaurant(null);
-        }
-        finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchRestaurant();
-    }, []);
+        dispatch(fetchRestaurant());
+    }, [dispatch]);
 
     if (loading) {
         return <RestaurantLoading />;
@@ -102,7 +84,9 @@ const Restaurant = () => {
                 <RestaurantProfile
                     restaurant={restaurant}
                     isSeller={true}
-                    onUpdate={setRestaurant}
+                    onUpdate={(updatedRestaurant) =>
+                        dispatch(setRestaurant(updatedRestaurant))
+                    }
                 />
 
                 {/* Navigation Tabs */}
@@ -183,13 +167,14 @@ const Restaurant = () => {
 
 export default Restaurant;
 
-
+/* ---------------- Loading ---------------- */
 
 const RestaurantLoading = () => {
     return (
         <div className="flex min-h-screen items-center justify-center bg-[#f7f7f8]">
             <div className="text-center">
                 <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-gray-200 border-t-red-500" />
+
                 <p className="mt-5 font-medium text-gray-500">
                     Loading your restaurant...
                 </p>

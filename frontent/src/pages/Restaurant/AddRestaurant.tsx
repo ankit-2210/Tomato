@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+
 import {
     FiUploadCloud,
     FiMapPin,
@@ -11,10 +12,17 @@ import {
 } from "react-icons/fi";
 
 import { restaurantService } from "../../main";
-import { useAppData } from "../../context/useAppData";
+
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+
+import { fetchRestaurant } from "../../redux/slices/restaurantSlice";
 
 const AddRestaurant = () => {
-    const { location } = useAppData();
+    const dispatch = useAppDispatch();
+
+    const { location } = useAppSelector(
+        (state) => state.location
+    );
 
     const [loading, setLoading] = useState(false);
     const [preview, setPreview] = useState("");
@@ -32,26 +40,46 @@ const AddRestaurant = () => {
 
         const file = e.target.files[0];
         setImage(file);
-        setPreview(URL.createObjectURL(file));
+        setPreview(
+            URL.createObjectURL(file)
+        );
     };
 
     const submitHandler = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
         if (!image) {
-            return toast.error("Please upload a restaurant image.");
+            return toast.error(
+                "Please upload a restaurant image."
+            );
         }
 
         if (!location) {
-            return toast.error("Location not found.");
+            return toast.error(
+                "Location not found."
+            );
+        }
+
+        if (!form.name.trim()) {
+            return toast.error(
+                "Restaurant name is required."
+            );
+        }
+
+        if (!form.phone.trim()) {
+            return toast.error(
+                "Contact number is required."
+            );
         }
 
         try {
             setLoading(true);
 
             const formData = new FormData();
-            formData.append("name", form.name);
-            formData.append("description", form.description);
-            formData.append("phone", form.phone);
+
+            formData.append("name", form.name.trim());
+            formData.append("description", form.description.trim());
+            formData.append("phone", form.phone.trim());
 
             formData.append("latitude", location.latitude.toString());
             formData.append("longitude", location.longitude.toString());
@@ -60,15 +88,27 @@ const AddRestaurant = () => {
 
             const { data } = await axios.post(`${restaurantService}/api/restaurant/add`, formData, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem(
-                        "token"
-                    )}`,
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
             });
 
-            toast.success(data.message);
+            if (data.token) {
+                localStorage.setItem(
+                    "token",
+                    data.token
+                );
+            }
 
-            window.location.reload();
+
+            toast.success(
+                data.message ||
+                "Restaurant created successfully."
+            );
+
+
+            await dispatch(
+                fetchRestaurant()
+            );
         }
         catch (error: unknown) {
             if (axios.isAxiosError(error)) {
@@ -78,7 +118,9 @@ const AddRestaurant = () => {
                 );
             }
             else {
-                toast.error("Something went wrong.");
+                toast.error(
+                    "Something went wrong."
+                );
             }
         }
         finally {
