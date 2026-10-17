@@ -1,48 +1,51 @@
+
+import type { ReactNode } from "react";
+import { FiPlusCircle, FiInbox } from "react-icons/fi";
 import { motion } from "framer-motion";
 
+interface EmptyDashboardProps {
+    title?: string;
+    description?: string;
+    actionLabel?: string;
+    onAction?: () => void;
+    icon?: ReactNode;
+}
 
-const EmptyDashboard = ({ icon, title, description, button }: {
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-    button: string;
-}) => {
+export default function EmptyDashboard({
+    title = "Nothing to display yet",
+    description = "Your information will appear here when it becomes available.",
+    actionLabel,
+    onAction,
+    icon,
+}: EmptyDashboardProps) {
     return (
         <motion.div
-            initial={{
-                opacity: 0,
-                y: 15,
-            }}
-            animate={{
-                opacity: 1,
-                y: 0,
-            }}
-            className="flex min-h-100 items-center justify-center rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-sm"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-14 text-center"
         >
-
-            <div className="max-w-md">
-
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50 text-3xl text-red-500">
-                    {icon}
-                </div>
-
-                <h2 className="mt-6 text-2xl font-bold text-gray-900">
-                    {title}
-                </h2>
-
-                <p className="mt-3 leading-7 text-gray-500">
-                    {description}
-                </p>
-
-                <button className="mt-7 rounded-xl bg-gray-950 px-6 py-3 font-semibold text-white transition hover:bg-red-500">
-                    {button}
-                </button>
-
+            <div className="rounded-2xl bg-orange-50 p-4">
+                {icon ?? <FiInbox className="text-3xl text-orange-500" />}
             </div>
 
+            <h3 className="mt-5 text-lg font-semibold text-gray-900">
+                {title}
+            </h3>
+
+            <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
+                {description}
+            </p>
+
+            {actionLabel && onAction && (
+                <button
+                    type="button"
+                    onClick={onAction}
+                    className="mt-6 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                >
+                    <FiPlusCircle className="text-lg" />
+                    {actionLabel}
+                </button>
+            )}
         </motion.div>
     );
-};
-
-
-export default EmptyDashboard;
+}

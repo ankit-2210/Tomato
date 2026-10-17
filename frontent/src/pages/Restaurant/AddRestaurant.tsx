@@ -1,356 +1,288 @@
-import { useState } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { motion } from "framer-motion";
-
-import {
-    FiUploadCloud,
-    FiMapPin,
-    FiPhone,
-    FiHome,
-    FiFileText,
-} from "react-icons/fi";
-
-import { restaurantService } from "../../main";
-
+import { FiCamera, FiMapPin, FiPlus, FiX } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-
-import { fetchRestaurant } from "../../redux/slices/Restaurant/restaurantSlice";
+import { addRestaurant } from "../../redux/slices/Restaurant/restaurantSlice";
 
 const AddRestaurant = () => {
-    const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
-    const { location } = useAppSelector(
-        (state) => state.location
-    );
+  const { actionLoading, error } = useAppSelector(
+    (state) => state.restaurant
+  );
 
-    const [loading, setLoading] = useState(false);
-    const [preview, setPreview] = useState("");
-    const [image, setImage] = useState<File | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    phone: "",
+    formattedAddress: "",
+  });
 
-    const [form, setForm] = useState({
-        name: "",
-        description: "",
-        phone: "",
-    });
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
 
-    const imageHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length)
-            return;
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
 
-        const file = e.target.files[0];
-        setImage(file);
-        setPreview(
-            URL.createObjectURL(file)
-        );
-    };
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
 
-    const submitHandler = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
-        if (!image) {
-            return toast.error(
-                "Please upload a restaurant image."
-            );
-        }
+    if (!file) return;
 
-        if (!location) {
-            return toast.error(
-                "Location not found."
-            );
-        }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image.");
+      event.target.value = "";
+      return;
+    }
 
-        if (!form.name.trim()) {
-            return toast.error(
-                "Restaurant name is required."
-            );
-        }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must not exceed 5 MB.");
+      event.target.value = "";
+      return;
+    }
 
-        if (!form.phone.trim()) {
-            return toast.error(
-                "Contact number is required."
-            );
-        }
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+  };
 
-        try {
-            setLoading(true);
+  const removeImage = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setImage(null);
+    setPreview("");
+  };
 
-            const formData = new FormData();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-            formData.append("name", form.name.trim());
-            formData.append("description", form.description.trim());
-            formData.append("phone", form.phone.trim());
+    if (!formData.name.trim()) {
+      toast.error("Restaurant name is required.");
+      return;
+    }
 
-            formData.append("latitude", location.latitude.toString());
-            formData.append("longitude", location.longitude.toString());
-            formData.append("formattedAddress", location.formattedAddress);
-            formData.append("file", image);
+    if (!formData.phone.trim()) {
+      toast.error("Phone number is required.");
+      return;
+    }
 
-            const { data } = await axios.post(`${restaurantService}/api/restaurant/add`, formData, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
+    if (!formData.formattedAddress.trim()) {
+      toast.error("Restaurant address is required.");
+      return;
+    }
 
-            if (data.token) {
-                localStorage.setItem(
-                    "token",
-                    data.token
-                );
-            }
+    if (!image) {
+      toast.error("Please upload a restaurant image.");
+      return;
+    }
 
+    const payload = new FormData();
+    payload.append("name", formData.name.trim());
+    payload.append("description", formData.description.trim());
+    payload.append("phone", formData.phone.trim());
+    payload.append("formattedAddress", formData.formattedAddress.trim());
+    payload.append("file", image);
 
-            toast.success(
-                data.message ||
-                "Restaurant created successfully."
-            );
+    try {
+      await dispatch(addRestaurant(payload)).unwrap();
+      toast.success("Restaurant registered successfully!");
+    } catch (err) {
+      toast.error(
+        typeof err === "string"
+          ? err
+          : error || "Unable to register restaurant."
+      );
+    }
+  };
 
+  return (
+    <div className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto max-w-3xl"
+      >
+        <div className="mb-8 text-center">
+          <span className="inline-flex rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-600">
+            Seller Registration
+          </span>
 
-            await dispatch(
-                fetchRestaurant()
-            );
-        }
-        catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                toast.error(
-                    error.response?.data?.message ??
-                    "Something went wrong."
-                );
-            }
-            else {
-                toast.error(
-                    "Something went wrong."
-                );
-            }
-        }
-        finally {
-            setLoading(false);
-        }
-    };
+          <h1 className="mt-4 text-3xl font-bold text-gray-900">
+            Register Your Restaurant
+          </h1>
 
-    return (
-        <div
-            className="relative min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-6"
-            style={{
-                backgroundImage:
-                    "url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1920&q=80')",
-            }}
-        >
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-
-            {/* Form Card */}
-            <motion.form
-                onSubmit={submitHandler}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="relative z-10 w-full max-w-4xl overflow-hidden rounded-3xl bg-white/90 shadow-2xl backdrop-blur-xl"
-            >
-                {/* Header */}
-                <div className="bg-linear-to-r from-red-600 via-orange-500 to-yellow-500 px-10 py-8 text-white">
-                    <h1 className="text-4xl font-extrabold">
-                        🍽️ Register Your Restaurant
-                    </h1>
-
-                    <p className="mt-2 text-lg text-white/90">
-                        Join thousands of restaurants and start serving hungry
-                        customers today.
-                    </p>
-                </div>
-
-                <div className="grid gap-8 p-8 lg:grid-cols-2">
-
-                    {/* LEFT SIDE */}
-                    <div className="space-y-6">
-
-                        {/* Image Upload */}
-                        <div>
-                            <label className="mb-2 block font-semibold text-gray-700">
-                                Restaurant Image
-                            </label>
-
-                            <label className="group flex h-72 cursor-pointer items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-red-500">
-                                {preview ? (
-                                    <img
-                                        src={preview}
-                                        alt="Preview"
-                                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                                    />
-                                ) : (
-                                    <div className="text-center">
-                                        <FiUploadCloud
-                                            size={65}
-                                            className="mx-auto text-red-500"
-                                        />
-
-                                        <h3 className="mt-4 text-lg font-semibold text-gray-700">
-                                            Upload Restaurant Photo
-                                        </h3>
-
-                                        <p className="mt-2 text-sm text-gray-500">
-                                            JPG • PNG • WEBP
-                                        </p>
-                                    </div>
-                                )}
-
-                                <input
-                                    hidden
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={imageHandler}
-                                />
-                            </label>
-                        </div>
-
-                        {/* Location */}
-                        <div>
-                            <label className="mb-2 block font-semibold text-gray-700">
-                                Restaurant Location
-                            </label>
-
-                            <div className="flex items-start gap-3 rounded-2xl border bg-gray-50 p-4">
-                                <FiMapPin
-                                    className="mt-1 text-red-500"
-                                    size={22}
-                                />
-
-                                <span className="text-sm text-gray-700">
-                                    {location?.formattedAddress ||
-                                        "Fetching your location..."}
-                                </span>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    {/* RIGHT SIDE */}
-                    <div className="space-y-5">
-
-                        {/* Name */}
-                        <div>
-                            <label className="mb-2 block font-semibold text-gray-700">
-                                Restaurant Name
-                            </label>
-
-                            <div className="relative">
-                                <FiHome
-                                    className="absolute left-4 top-4 text-gray-400"
-                                    size={20}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Pizza Hub"
-                                    value={form.name}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            name: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-2xl border pl-12 pr-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-300"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Phone */}
-                        <div>
-                            <label className="mb-2 block font-semibold text-gray-700">
-                                Contact Number
-                            </label>
-
-                            <div className="relative">
-                                <FiPhone
-                                    className="absolute left-4 top-4 text-gray-400"
-                                    size={20}
-                                />
-                                <input
-                                    type="tel"
-                                    placeholder="9876543210"
-                                    value={form.phone}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            phone: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-2xl border pl-12 pr-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-300"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                            <label className="mb-2 block font-semibold text-gray-700">
-                                Description
-                            </label>
-
-                            <div className="relative">
-                                <FiFileText
-                                    className="absolute left-4 top-4 text-gray-400"
-                                    size={20}
-                                />
-
-                                <textarea
-                                    rows={5}
-                                    placeholder="Tell customers what makes your restaurant special..."
-                                    value={form.description}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            description: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-2xl border pl-12 pr-4 py-3 outline-none resize-none focus:border-red-500 focus:ring-2 focus:ring-red-300"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Submit Button */}
-                        <motion.button
-                            whileHover={{
-                                scale: 1.02,
-                            }}
-                            whileTap={{
-                                scale: 0.98,
-                            }}
-                            disabled={loading}
-                            className="w-full rounded-2xl bg-linear-to-r from-red-600 via-orange-500 to-yellow-500 py-4 text-lg font-bold text-white shadow-xl transition-all disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                            {loading
-                                ? "Creating Restaurant..."
-                                : "🚀 Create Restaurant"}
-                        </motion.button>
-
-                        <div className="rounded-2xl bg-orange-50 border border-orange-100 p-4">
-                            <h3 className="font-semibold text-orange-600">
-                                Why register?
-                            </h3>
-
-                            <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                                <li>✅ Reach thousands of nearby customers</li>
-                                <li>✅ Manage your own menu</li>
-                                <li>✅ Accept orders instantly</li>
-                                <li>✅ Real-time order tracking</li>
-                                <li>✅ Analytics & earnings dashboard</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="border-t bg-gray-50 px-8 py-5 text-center">
-                    <p className="text-sm text-gray-500">
-                        Powered by{" "}
-                        <span className="font-semibold text-red-500">
-                            Tomato
-                        </span>{" "}
-                        • Grow your restaurant business with us 🍕
-                    </p>
-                </div>
-            </motion.form>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-500">
+            Set up your restaurant profile to start managing your menu and
+            serving customers through Tomato.
+          </p>
         </div>
-    );
+
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8"
+        >
+          <div className="mb-7">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Restaurant Information
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Enter the details customers will see.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label
+                htmlFor="name"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Restaurant Name *
+              </label>
+
+              <input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="e.g. Tomato Kitchen"
+                maxLength={100}
+                required
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="description"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Description
+              </label>
+
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Tell customers what makes your restaurant special..."
+                rows={4}
+                maxLength={1000}
+                className="w-full resize-y rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="phone"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Contact Number *
+              </label>
+
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Enter contact number"
+                required
+                maxLength={20}
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="formattedAddress"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700"
+              >
+                <FiMapPin className="text-orange-500" />
+                Restaurant Address *
+              </label>
+
+              <textarea
+                id="formattedAddress"
+                name="formattedAddress"
+                value={formData.formattedAddress}
+                onChange={handleChange}
+                placeholder="Enter the complete restaurant address"
+                rows={3}
+                required
+                className="w-full resize-y rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Restaurant Image *
+              </label>
+
+              {preview ? (
+                <div className="relative overflow-hidden rounded-xl border border-gray-200">
+                  <img
+                    src={preview}
+                    alt="Restaurant preview"
+                    className="h-64 w-full object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    aria-label="Remove image"
+                    className="absolute right-3 top-3 rounded-full bg-white p-2 text-red-600 shadow hover:bg-red-50"
+                  >
+                    <FiX size={18} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 px-5 py-10 transition hover:border-orange-400 hover:bg-orange-50">
+                  <FiCamera className="mb-3 text-3xl text-orange-500" />
+
+                  <span className="text-sm font-semibold text-gray-700">
+                    Upload restaurant image
+                  </span>
+
+                  <span className="mt-1 text-xs text-gray-500">
+                    PNG, JPG or WebP — maximum 5 MB
+                  </span>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {error && (
+            <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={actionLoading}
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <FiPlus />
+            {actionLoading ? "Registering..." : "Register Restaurant"}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
 };
 
 export default AddRestaurant;
