@@ -4,23 +4,29 @@ const restaurantSchema = new Schema({
         type: String,
         required: true,
         trim: true,
+        maxlength: 100,
     },
     description: {
         type: String,
         default: "",
+        trim: true,
+        maxlength: 1000,
     },
     image: {
         type: String,
         required: true,
+        trim: true,
     },
     ownerId: {
         type: Schema.Types.ObjectId,
         ref: "User",
         required: true,
+        unique: true,
     },
     phone: {
-        type: Number,
+        type: String,
         required: true,
+        trim: true,
     },
     isVerified: {
         type: Boolean,
@@ -31,14 +37,33 @@ const restaurantSchema = new Schema({
             type: String,
             enum: ["Point"],
             default: "Point",
+            required: true,
         },
         coordinates: {
             type: [Number],
             required: true,
+            validate: {
+                validator: (coordinates) => {
+                    if (coordinates.length !== 2) {
+                        return false;
+                    }
+                    const [longitude, latitude] = coordinates;
+                    return (longitude !== undefined &&
+                        latitude !== undefined &&
+                        Number.isFinite(longitude) &&
+                        Number.isFinite(latitude) &&
+                        longitude >= -180 &&
+                        longitude <= 180 &&
+                        latitude >= -90 &&
+                        latitude <= 90);
+                },
+                message: "Coordinates must contain valid [longitude, latitude] values.",
+            },
         },
         formattedAddress: {
             type: String,
-            default: "",
+            required: true,
+            trim: true,
         },
     },
     isOpen: {
@@ -48,6 +73,7 @@ const restaurantSchema = new Schema({
 }, {
     timestamps: true,
 });
+// Geospatial index for nearby restaurant searches
 restaurantSchema.index({
     autoLocation: "2dsphere",
 });

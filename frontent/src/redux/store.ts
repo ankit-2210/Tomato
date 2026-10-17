@@ -1,15 +1,16 @@
 import { configureStore } from "@reduxjs/toolkit";
 
-import authReducer from "./slices/authSlice";
-import locationReducer from "./slices/locationSlice";
-import restaurantReducer from "./slices/restaurantSlice";
-
+import authReducer from "./slices/Auth/authSlice";
+import locationReducer from "./slices/Location/locationSlice";
+import restaurantReducer from "./slices/Restaurant/restaurantSlice";
+import menuItemReducer from "./slices/Restaurant/menuItemSlice";
 
 export const store = configureStore({
     reducer: {
         auth: authReducer,
         location: locationReducer,
         restaurant: restaurantReducer,
+        menuItem: menuItemReducer,
     },
 });
 

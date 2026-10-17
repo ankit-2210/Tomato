@@ -1,16 +1,18 @@
-import mongoose, { Document, Schema } from "mongoose";
+
+import mongoose, { Schema } from "mongoose";
+import type { Document } from "mongoose";
 
 export interface IRestaurant extends Document {
     name: string;
     description?: string;
     image: string;
     ownerId: mongoose.Types.ObjectId;
-    phone: number;
+    phone: string;
     isVerified: boolean;
 
     autoLocation: {
-        type: "Point",
-        coordinates: [number, number];  // [longitude, latitude]
+        type: "Point";
+        coordinates: [number, number]; // [longitude, latitude]
         formattedAddress: string;
     };
 
@@ -19,58 +21,99 @@ export interface IRestaurant extends Document {
     updatedAt: Date;
 }
 
-const restaurantSchema = new Schema<IRestaurant>({
-    name: {
-        type: String,
-        required: true,
-        trim: true,
-    },
-    description: {
-        type: String,
-        default: "",
-    },
-    image: {
-        type: String,
-        required: true,
-    },
-    ownerId: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-    },
-    phone: {
-        type: Number,
-        required: true,
-    },
-    isVerified: {
-        type: Boolean,
-        default: false,
-    },
-    autoLocation: {
-        type: {
+const restaurantSchema = new Schema<IRestaurant>(
+    {
+        name: {
             type: String,
-            enum: ["Point"],
-            default: "Point",
-        },
-        coordinates: {
-            type: [Number],
             required: true,
+            trim: true,
+            maxlength: 100,
         },
-        formattedAddress: {
+
+        description: {
             type: String,
             default: "",
+            trim: true,
+            maxlength: 1000,
+        },
+
+        image: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        ownerId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+            unique: true,
+        },
+
+        phone: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+
+        autoLocation: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+                required: true,
+            },
+
+            coordinates: {
+                type: [Number],
+                required: true,
+                validate: {
+                    validator: (coordinates: number[]) => {
+                        if (coordinates.length !== 2) {
+                            return false;
+                        }
+
+                        const [longitude, latitude] = coordinates;
+
+                        return (
+                            longitude !== undefined &&
+                            latitude !== undefined &&
+                            Number.isFinite(longitude) &&
+                            Number.isFinite(latitude) &&
+                            longitude >= -180 &&
+                            longitude <= 180 &&
+                            latitude >= -90 &&
+                            latitude <= 90
+                        );
+                    },
+                    message:
+                        "Coordinates must contain valid [longitude, latitude] values.",
+                },
+            },
+
+            formattedAddress: {
+                type: String,
+                required: true,
+                trim: true,
+            },
+        },
+
+        isOpen: {
+            type: Boolean,
+            default: false,
         },
     },
-    isOpen: {
-        type: Boolean,
-        default: false,
-    },
-},
     {
         timestamps: true,
     }
 );
 
+// Geospatial index for nearby restaurant searches
 restaurantSchema.index({
     autoLocation: "2dsphere",
 });
@@ -81,5 +124,3 @@ const Restaurant = mongoose.model<IRestaurant>(
 );
 
 export default Restaurant;
-
-

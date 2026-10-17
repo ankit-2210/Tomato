@@ -15,7 +15,7 @@ import { restaurantService } from "../../main";
 
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 
-import { fetchRestaurant } from "../../redux/slices/restaurantSlice";
+import { fetchRestaurant } from "../../redux/slices/Restaurant/restaurantSlice";
 
 const AddRestaurant = () => {
     const dispatch = useAppDispatch();

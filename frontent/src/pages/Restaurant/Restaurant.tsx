@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
     fetchRestaurant,
     setRestaurant,
-} from "../../redux/slices/restaurantSlice";
+} from "../../redux/slices/Restaurant/restaurantSlice";
 
 import AddRestaurant from "./AddRestaurant";
 import RestaurantProfile from "./RestaurantProfile";

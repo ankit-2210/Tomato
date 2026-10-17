@@ -17,7 +17,7 @@ import {
     useAppSelector
 } from '../redux/hooks';
 
-import { logout } from "../redux/slices/authSlice";
+import { logout } from "../redux/slices/Auth/authSlice";
 
 type MenuItemProps = {
     icon: React.ReactNode;

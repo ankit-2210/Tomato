@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { authService } from "../main";
 
 import { useAppDispatch } from "../redux/hooks";
-import { setUser } from "../redux/slices/authSlice";
+import { setUser } from "../redux/slices/Auth/authSlice";
 
 type Role = "customer" | "seller" | "rider" | null;
 

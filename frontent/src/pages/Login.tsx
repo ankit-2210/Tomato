@@ -10,7 +10,7 @@ import { FcGoogle } from "react-icons/fc";
 
 import { authService } from '../main';
 import { useAppDispatch } from "../redux/hooks";
-import { setUser } from '../redux/slices/authSlice';
+import { setUser } from '../redux/slices/Auth/authSlice';
 // import { useAppData } from '../context/useAppData';
 
 const Login = () => {
