@@ -5,12 +5,14 @@ import Restaurant from "../model/Restaurant.js";
 // Add Menu Item
 export const addMenuItem = TryCatch(async (req, res) => {
     const user = req.user;
+    console.log(req.body);
     if (!user) {
         return res.status(401).json({
             success: false,
             message: "Unauthorized",
         });
     }
+    // Find the restaurant owned by the logged-in user
     const restaurant = await Restaurant.findOne({
         ownerId: user._id,
     });
@@ -20,15 +22,17 @@ export const addMenuItem = TryCatch(async (req, res) => {
             message: "Restaurant not found.",
         });
     }
+    // Extract menu item details
     const { name, description, price } = req.body;
-    if (!name || price === undefined) {
-        return res.status(404).json({
+    if (!name?.trim() || price === undefined || price === "") {
+        return res.status(400).json({
             success: false,
-            message: "Name and price are required",
+            message: "Name and price are required.",
         });
     }
+    // Validate price
     const numericPrice = Number(price);
-    if (isNaN(numericPrice) || numericPrice < 0) {
+    if (!Number.isFinite(numericPrice) || numericPrice < 0) {
         return res.status(400).json({
             success: false,
             message: "Please provide a valid price.",
@@ -46,16 +50,18 @@ export const addMenuItem = TryCatch(async (req, res) => {
     console.log("Image URL:", imageUrl);
     const menuItem = new MenuItem({
         restaurantId: restaurant._id,
-        name,
-        description,
+        name: name.trim(),
+        description: description?.trim() || "",
         image: imageUrl,
         price: numericPrice,
         isAvailable: true,
     });
+    // Save the document to MongoDB
+    const savedMenuItem = await menuItem.save();
     return res.status(201).json({
         success: true,
         message: "Menu item added successfully.",
-        menuItem,
+        savedMenuItem,
     });
 });
 // GET ALL MENU ITEMS
@@ -257,12 +263,14 @@ export const toggleAvailability = TryCatch(async (req, res) => {
         });
     }
     menuItem.isAvailable = !menuItem.isAvailable;
+    const updatedMenuItem = await menuItem.save();
     return res.status(200).json({
         success: true,
         message: menuItem.isAvailable
             ? "Menu item is now available."
             : "Menu item is now unavailable.",
         isAvailable: menuItem.isAvailable,
+        menuItem: updatedMenuItem,
     });
 });
 // SEARCH MENU ITEMS

@@ -28,15 +28,6 @@ export const addRestaurant = TryCatch(async (req, res) => {
             message: "Unauthorized.",
         });
     }
-    const existingRestaurant = await Restaurant.findOne({
-        ownerId: user._id,
-    });
-    if (existingRestaurant) {
-        return res.status(400).json({
-            success: false,
-            message: "You already own a restaurant.",
-        });
-    }
     const { name, description, phone, latitude, longitude, formattedAddress, } = req.body;
     if (typeof name !== "string" ||
         !name.trim() ||
@@ -75,7 +66,9 @@ export const addRestaurant = TryCatch(async (req, res) => {
     const imageUrl = `${req.protocol}://${req.get("host")}/uploads/restaurants/${req.file.filename}`;
     const restaurant = await Restaurant.create({
         name: name.trim(),
-        description: typeof description === "string" ? description.trim() : "",
+        description: typeof description === "string"
+            ? description.trim()
+            : "",
         phone: phone.trim(),
         image: imageUrl,
         ownerId: user._id,

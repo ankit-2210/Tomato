@@ -89,11 +89,13 @@ const MenuSections = () => {
             if (restaurant?._id) {
                 await dispatch(fetchMenuItems(restaurant._id));
             }
-        } catch (err) {
+        }
+        catch (err) {
             toast.error(
                 typeof err === "string" ? err : "Failed to update menu item."
             );
-        } finally {
+        }
+        finally {
             setSavingEdit(false);
         }
     };
@@ -136,7 +138,8 @@ const MenuSections = () => {
             if (restaurant?._id) {
                 await dispatch(fetchMenuItems(restaurant._id));
             }
-        } catch (err) {
+        }
+        catch (err) {
             toast.error(
                 typeof err === "string"
                     ? err

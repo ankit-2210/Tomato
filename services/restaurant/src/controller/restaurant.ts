@@ -43,17 +43,6 @@ export const addRestaurant = TryCatch(
             });
         }
 
-        const existingRestaurant = await Restaurant.findOne({
-            ownerId: user._id,
-        });
-
-        if (existingRestaurant) {
-            return res.status(400).json({
-                success: false,
-                message: "You already own a restaurant.",
-            });
-        }
-
         const {
             name,
             description,
@@ -111,7 +100,9 @@ export const addRestaurant = TryCatch(
         const restaurant = await Restaurant.create({
             name: name.trim(),
             description:
-                typeof description === "string" ? description.trim() : "",
+                typeof description === "string"
+                    ? description.trim()
+                    : "",
             phone: phone.trim(),
             image: imageUrl,
             ownerId: user._id,

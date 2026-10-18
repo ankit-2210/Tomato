@@ -47,7 +47,7 @@ const restaurantSchema = new Schema<IRestaurant>(
             type: Schema.Types.ObjectId,
             ref: "User",
             required: true,
-            unique: true,
+            index: true,
         },
 
         phone: {
@@ -113,7 +113,7 @@ const restaurantSchema = new Schema<IRestaurant>(
     }
 );
 
-// Geospatial index for nearby restaurant searches
+// Geospatial index for nearby restaurant searches.
 restaurantSchema.index({
     autoLocation: "2dsphere",
 });

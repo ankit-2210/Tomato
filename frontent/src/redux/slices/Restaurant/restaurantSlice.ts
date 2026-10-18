@@ -78,6 +78,13 @@ const initialState: RestaurantState = {
     error: null,
 };
 
+interface AddRestaurantResponse {
+    success: boolean;
+    message: string;
+    restaurant?: IRestaurant;
+}
+
+
 
 // --------------------------------------------------
 // Helpers
@@ -148,7 +155,7 @@ export const addRestaurant = createAsyncThunk<
     { rejectValue: string }
 >("restaurant/addRestaurant", async (formData, { rejectWithValue }) => {
     try {
-        const { data } = await axios.post<ApiResponse<IRestaurant>>(
+        const { data } = await axios.post<AddRestaurantResponse>(
             `${restaurantService}/api/restaurant/add`,
             formData,
             {
@@ -156,15 +163,40 @@ export const addRestaurant = createAsyncThunk<
             }
         );
 
-        if (!data.restaurant) {
-            return rejectWithValue("Restaurant data was not returned.");
+        if (!data.success || !data.restaurant) {
+            return rejectWithValue(
+                data.message || "Restaurant data was not returned."
+            );
         }
 
         return data.restaurant;
     }
     catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Add restaurant failed:", {
+                url: error.config?.url,
+                status: error.response?.status,
+                response: error.response?.data,
+                message: error.message,
+            });
+
+            const responseData = error.response?.data as
+                | { message?: string; error?: string }
+                | undefined;
+
+            return rejectWithValue(
+                responseData?.message ||
+                responseData?.error ||
+                (error.response
+                    ? `Request failed with status ${error.response.status}.`
+                    : error.message || "Unable to reach the server.")
+                );
+            }
+
         return rejectWithValue(
-            getErrorMessage(error, "Failed to create restaurant.")
+            error instanceof Error
+                ? error.message
+                : "Failed to create restaurant."
         );
     }
 });

@@ -22,6 +22,9 @@ const AddRestaurant = () => {
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -54,6 +57,31 @@ const AddRestaurant = () => {
     setPreview(URL.createObjectURL(file));
   };
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(position.coords.latitude);
+        setLongitude(position.coords.longitude);
+        toast.success("Restaurant coordinates captured.");
+      },
+      () => {
+        toast.error(
+          "Unable to get your location. Please allow location access."
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   const removeImage = () => {
     if (preview) URL.revokeObjectURL(preview);
     setImage(null);
@@ -83,11 +111,18 @@ const AddRestaurant = () => {
       return;
     }
 
+    if (latitude === null || longitude === null) {
+      toast.error("Please capture the restaurant's coordinates.");
+      return;
+    }
+
     const payload = new FormData();
     payload.append("name", formData.name.trim());
     payload.append("description", formData.description.trim());
     payload.append("phone", formData.phone.trim());
     payload.append("formattedAddress", formData.formattedAddress.trim());
+    payload.append("latitude", String(latitude));
+    payload.append("longitude", String(longitude));
     payload.append("file", image);
 
     try {
@@ -218,6 +253,21 @@ const AddRestaurant = () => {
                 required
                 className="w-full resize-y rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
               />
+
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                className="mt-3 rounded-xl border border-orange-300 px-4 py-2 text-sm font-medium text-orange-600 transition hover:bg-orange-50"
+              >
+                <FiMapPin className="mr-2 inline" />
+                Capture Restaurant Coordinates
+              </button>
+
+              {latitude !== null && longitude !== null && (
+                <p className="mt-2 text-sm text-green-600">
+                  Coordinates captured: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                </p>
+              )}
             </div>
 
             <div>

@@ -40,13 +40,15 @@ const AddItemsSection = () => {
 
             setAddedItemName(String(formData.get("name") ?? "Menu item"));
             toast.success("Menu item added successfully!");
-        } catch (error) {
+        }
+        catch (error) {
             toast.error(
                 typeof error === "string"
                     ? error
                     : "Unable to add menu item. Please try again."
             );
-        } finally {
+        }
+        finally {
             setSubmitting(false);
         }
     };
