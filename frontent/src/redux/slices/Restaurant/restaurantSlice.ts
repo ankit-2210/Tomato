@@ -40,6 +40,7 @@ interface ApiResponse<T> {
 }
 
 interface EditRestaurantPayload {
+    restaurantId: string;
     name: string;
     description?: string;
 }
@@ -146,7 +147,32 @@ export const fetchRestaurant = createAsyncThunk<
     }
 });
 
+// Fetch all restaurants owned by the logged-in seller.
+// GET /api/restaurant/my-restaurants
+export const fetchMyRestaurants = createAsyncThunk<
+    IRestaurant[],
+    void,
+    { rejectValue: string }
+>(
+    "restaurant/fetchMyRestaurants", async (_, { rejectWithValue }) => {
+    try {
+        const { data } = await axios.get<ApiResponse<IRestaurant>>(
+            `${restaurantService}/api/restaurant/my-restaurants`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
 
+        return data.restaurants ?? [];
+    } catch (error: unknown) {
+        return rejectWithValue(
+            getErrorMessage(
+                error,
+                "Failed to fetch your restaurants."
+            )
+        );
+    }
+});
 
 // Add restaurant
 // POST /api/restaurant/add
@@ -212,6 +238,7 @@ export const editRestaurant = createAsyncThunk<
         const { data } = await axios.patch<ApiResponse<IRestaurant>>(
             `${restaurantService}/api/restaurant/edit`,
             {
+                restaurantId: payload.restaurantId,
                 name: payload.name.trim(),
                 description: payload.description?.trim() ?? "",
             },
@@ -240,11 +267,11 @@ export const toggleRestaurantStatus = createAsyncThunk<
     IRestaurant,
     void,
     { rejectValue: string }
->("restaurant/toggleRestaurantStatus", async (_, { rejectWithValue }) => {
+>("restaurant/toggleRestaurantStatus", async (restaurantId, { rejectWithValue }) => {
     try {
         const { data } = await axios.patch<ApiResponse<IRestaurant>>(
             `${restaurantService}/api/restaurant/toggle-open`,
-            {},
+            {restaurantId},
             {
                 headers: getAuthHeaders()
             }
@@ -372,6 +399,13 @@ const restaurantSlice = createSlice({
             state.restaurants = action.payload;
         },
 
+        
+        setSelectedRestaurant(state, action: PayloadAction<IRestaurant | null>) {
+            state.selectedRestaurant = action.payload;
+            state.restaurant = action.payload;
+            state.error = null;
+        },
+
         clearRestaurant: (state) => {
             state.restaurant = null;
             state.error = null;
@@ -408,6 +442,35 @@ const restaurantSlice = createSlice({
                     action.payload ?? "Failed to fetch your restaurant.";
             })
 
+            // Fetch my seller's restaurant
+            .addCase(fetchMyRestaurants.pending, (state) => {
+                state.listLoading = true;
+                state.error = null;
+            })
+           .addCase(fetchMyRestaurants.fulfilled, (state, action) => {
+                state.listLoading = false;
+                state.restaurants = action.payload;
+
+                const selectedId =
+                state.selectedRestaurant?._id ?? state.restaurant?._id;
+
+                const currentSelection = action.payload.find(
+                    (restaurant) => restaurant._id === selectedId
+                );
+
+                const selected = currentSelection ?? action.payload[0] ?? null;
+
+                state.selectedRestaurant = selected;
+                state.restaurant = selected;
+                state.error = null;
+            })
+            .addCase(fetchMyRestaurants.rejected, (state, action) => {
+                state.listLoading = false;
+                state.error =
+                action.payload ?? "Failed to fetch your restaurants.";
+                state.error = action.payload ?? "Failed to fetch your restaurants.";
+            })
+
             // Add restaurant
             .addCase(addRestaurant.pending, (state) => {
                 state.actionLoading = true;
@@ -415,7 +478,18 @@ const restaurantSlice = createSlice({
             })
             .addCase(addRestaurant.fulfilled, (state, action) => {
                 state.actionLoading = false;
-                state.restaurants.push(action.payload);
+
+                const newRestaurant = action.payload;
+                const exists = state.restaurants.some(
+                    (restaurant) => restaurant._id === newRestaurant._id
+                );
+
+                if (!exists) {
+                    state.restaurants.unshift(newRestaurant);
+                }
+
+                state.restaurant = newRestaurant;
+                state.selectedRestaurant = newRestaurant;
                 state.error = null;
             })
             .addCase(addRestaurant.rejected, (state, action) => {
@@ -430,7 +504,21 @@ const restaurantSlice = createSlice({
             })
             .addCase(editRestaurant.fulfilled, (state, action) => {
                 state.actionLoading = false;
-                state.restaurant = action.payload;
+
+                const updatedRestaurant = action.payload;
+
+                state.restaurants = state.restaurants.map((restaurant) =>
+                    restaurant._id === updatedRestaurant._id
+                    ? updatedRestaurant
+                    : restaurant
+                );
+
+                if (state.selectedRestaurant?._id === updatedRestaurant._id ||
+                        state.restaurant?._id === updatedRestaurant._id) {
+                    state.restaurant = updatedRestaurant;
+                    state.selectedRestaurant = updatedRestaurant;
+                }
+
                 state.error = null;
             })
             .addCase(editRestaurant.rejected, (state, action) => {
@@ -446,7 +534,22 @@ const restaurantSlice = createSlice({
             })
             .addCase(toggleRestaurantStatus.fulfilled, (state, action) => {
                 state.actionLoading = false;
-                state.restaurant = action.payload;
+
+                const updatedRestaurant = action.payload;
+
+                state.restaurants = state.restaurants.map((restaurant) =>
+                    restaurant._id === updatedRestaurant._id
+                    ? updatedRestaurant
+                    : restaurant
+                );
+
+                if (state.selectedRestaurant?._id === updatedRestaurant._id ||
+                        state.restaurant?._id === updatedRestaurant._id
+                ) {
+                    state.restaurant = updatedRestaurant;
+                    state.selectedRestaurant = updatedRestaurant;
+                }
+
                 state.error = null;
             })
             .addCase(toggleRestaurantStatus.rejected, (state, action) => {
@@ -513,6 +616,7 @@ const restaurantSlice = createSlice({
 export const {
     setRestaurant,
     setRestaurants,
+    setSelectedRestaurant,
     clearRestaurant,
     clearRestaurantError,
     clearRestaurantSearch,

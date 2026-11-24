@@ -110,6 +110,7 @@ const restaurantSchema = new Schema<IRestaurant>(
     },
     {
         timestamps: true,
+        versionKey: false,
     }
 );
 

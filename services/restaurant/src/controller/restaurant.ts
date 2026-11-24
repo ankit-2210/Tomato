@@ -158,6 +158,40 @@ export const fetchRestaurant = TryCatch(
     }
 );
 
+
+
+// --------------------------------------------------
+// Fetch seller's restaurant
+// GET /api/restaurant/my-restaurants
+// --------------------------------------------------
+export const fetchMyRestaurants = TryCatch(
+    async (req: AuthenticationRequest, res: Response) => {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized.",
+            });
+        }
+
+        const restaurants = await Restaurant.find({
+            ownerId: user._id,
+        })
+            .sort({ createdAt: -1 })
+            .select("-__v")
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            message: "Restaurants fetched successfully.",
+            restaurants,
+        });
+    }
+);
+
+
+
 // --------------------------------------------------
 // Toggle restaurant open/closed
 // PATCH /api/restaurant/toggle-open
@@ -174,7 +208,16 @@ export const toggleRestaurantStatus = TryCatch(
             });
         }
 
+        const { restaurantId } = req.body;
+        if (typeof restaurantId !== "string" || mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({
+                success: false,
+                message: "A valid restaurant ID is required.",
+            });
+        }
+
         const restaurant = await Restaurant.findOne({
+            _id: restaurantId,
             ownerId: user._id,
         });
 
@@ -214,17 +257,27 @@ export const editRestaurant = TryCatch(
             });
         }
 
-        const { name, description } = req.body;
+        const { restaurantId, name, description } = req.body;
 
-        if (typeof name !== "string" || !name.trim()) {
+        if (typeof restaurantId !== "string" || !mongoose.Types.ObjectId.isValid(restaurantId)) {
             return res.status(400).json({
                 success: false,
-                message: "Restaurant name is required.",
+                message: "A valid restaurant ID is required.",
+            });
+        }
+
+        if (typeof name !== "string" || !name.trim() || name.trim().length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: "Restaurant name is required and must be between 2 and 100 characters.",
             });
         }
 
         const restaurant = await Restaurant.findOneAndUpdate(
-            { ownerId: user._id },
+            { 
+                _id: restaurantId,
+                ownerId: user._id 
+            },
             {
                 name: name.trim(),
                 description:

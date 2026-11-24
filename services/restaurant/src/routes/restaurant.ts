@@ -8,6 +8,7 @@ import {
     fetchAllRestaurants,
     fetchRestaurantById,
     searchRestaurants,
+    fetchMyRestaurants
 } from "../controller/restaurant.js";
 
 import { isAuth, isSeller } from "../middlewares/auth.js";
@@ -21,6 +22,9 @@ const router = Router();
 
 // Create a restaurant
 router.post("/add", isAuth, isSeller, uploadFile, addRestaurant);
+
+// Fetch all restaurants owned by the logged-in seller
+router.get("/my-restaurants", isAuth, isSeller, fetchMyRestaurants);
 
 // Fetch the logged-in seller's restaurant
 router.get("/", isAuth, isSeller, fetchRestaurant);
@@ -45,7 +49,6 @@ router.get("/search", searchRestaurants);
 
 // Fetch a restaurant by ID
 router.get("/:id", fetchRestaurantById);
-
 
 
 

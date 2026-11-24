@@ -72,6 +72,7 @@ const restaurantSchema = new Schema({
     },
 }, {
     timestamps: true,
+    versionKey: false,
 });
 // Geospatial index for nearby restaurant searches.
 restaurantSchema.index({

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addRestaurant, fetchRestaurant, toggleRestaurantStatus, editRestaurant, fetchAllRestaurants, fetchRestaurantById, searchRestaurants, } from "../controller/restaurant.js";
+import { addRestaurant, fetchRestaurant, toggleRestaurantStatus, editRestaurant, fetchAllRestaurants, fetchRestaurantById, searchRestaurants, fetchMyRestaurants } from "../controller/restaurant.js";
 import { isAuth, isSeller } from "../middlewares/auth.js";
 import uploadFile from "../middlewares/multer.js";
 const router = Router();
@@ -8,6 +8,8 @@ const router = Router();
 // ---------------------------------------------
 // Create a restaurant
 router.post("/add", isAuth, isSeller, uploadFile, addRestaurant);
+// Fetch all restaurants owned by the logged-in seller
+router.get("/my-restaurants", isAuth, isSeller, fetchMyRestaurants);
 // Fetch the logged-in seller's restaurant
 router.get("/", isAuth, isSeller, fetchRestaurant);
 // Edit restaurant details
